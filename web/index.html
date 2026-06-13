@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCU Fmax Research Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="topbar">
+            <h1>MCU Fmax Research Dashboard</h1>
+            <label class="theme-switch" title="Toggle theme">
+                <input type="checkbox" class="theme-switch__checkbox" id="theme-toggle">
+                <div class="theme-switch__container">
+                    <div class="theme-switch__clouds"></div>
+                    <div class="theme-switch__stars-container">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 55" fill="none">
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M135.831 3.00688C135.055 3.85027 134.111 4.29946 133 4.35447C134.111 4.40947 135.055 4.85867 135.831 5.71123C136.607 6.55462 136.996 7.56303 136.996 8.72727C136.996 7.95722 137.172 7.25134 137.525 6.59129C137.886 5.93124 138.372 5.39954 138.98 5.00535C139.598 4.60199 140.268 4.39114 141 4.35447C139.88 4.2903 138.936 3.85027 138.16 3.00688C137.384 2.16348 136.996 1.16425 136.996 0C136.996 1.16425 136.607 2.16348 135.831 3.00688Z" fill="currentColor"></path>
+                        </svg>
+                    </div>
+                    <div class="theme-switch__circle-container">
+                        <div class="theme-switch__sun-moon-container">
+                            <div class="theme-switch__moon">
+                                <div class="theme-switch__spot"></div>
+                                <div class="theme-switch__spot"></div>
+                                <div class="theme-switch__spot"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </label>
+        </div>
+
+        <!-- Section 1: Prediction Panel -->
+        <section class="section">
+            <h2>1 &mdash; Prediction Panel</h2>
+            <div class="actions">
+                <div class="action-card">
+                    <h3>Upload CSV</h3>
+                    <p>Upload a CSV file with 30 feature columns for batch prediction.</p>
+                    <input type="file" id="csv-file" accept=".csv">
+                    <button id="upload-btn">Upload &amp; Predict</button>
+                    <button id="download-btn" class="secondary hidden">Download Results CSV</button>
+                </div>
+                <div class="action-card">
+                    <h3>Random Sample</h3>
+                    <p>Generate random sensor values and predict Fmax.</p>
+                    <button id="random-btn">Generate Random Sample</button>
+                </div>
+            </div>
+
+            <div id="random-sample" class="sample-box hidden">
+                <h3>Generated Sample</h3>
+                <div id="sample-values" class="sample-grid"></div>
+            </div>
+
+            <div id="results" class="results hidden">
+                <h3>Prediction Results</h3>
+                <div id="model-controls" class="model-controls hidden">
+                    <div class="radio-input">
+                        <div class="glass"><div class="glass-inner"></div></div>
+                        <div class="selector">
+                            <div class="choice">
+                                <div>
+                                    <input class="choice-circle" checked value="SMON Only" name="model-selector" id="model-one" type="radio" />
+                                    <div class="ball"></div>
+                                </div>
+                                <label for="model-one" class="choice-name">1</label>
+                            </div>
+                            <div class="choice">
+                                <div>
+                                    <input class="choice-circle" value="SMON + Env" name="model-selector" id="model-two" type="radio" />
+                                    <div class="ball"></div>
+                                </div>
+                                <label for="model-two" class="choice-name">2</label>
+                            </div>
+                            <div class="choice">
+                                <div>
+                                    <input class="choice-circle" value="SMON+Env+cluster" name="model-selector" id="model-three" type="radio" />
+                                    <div class="ball"></div>
+                                </div>
+                                <label for="model-three" class="choice-name">3</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <table id="results-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Predicted Fmax</th>
+                            <th>Uncertainty</th>
+                            <th>Confidence Lower</th>
+                            <th>Confidence Upper</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+
+                <div id="model-comparison" class="model-comparison hidden">
+                    <h3>Model Risk Comparison</h3>
+                    <table id="model-compare-table">
+                        <thead>
+                            <tr>
+                                <th>Model</th>
+                                <th>Prediction (GHz)</th>
+                                <th>Uncertainty (GHz)</th>
+                                <th>Risk</th>
+                                <th>nRMSE</th>
+                                <th>Recommendation</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="error" class="error hidden"></div>
+        </section>
+
+        <!-- Section 2: Model Comparison Graph -->
+        <section class="section">
+            <h2>2 &mdash; Model Prediction Comparison</h2>
+            <div class="chart-card card">
+                <div class="content">
+                    <div class="back"><div class="back-content"><strong>Hover Me</strong></div></div>
+                    <div class="front">
+                        <div class="front-content">
+                            <div class="chart-loader" id="loader-model-comparison"><div class="honeycomb"><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div></div>
+                            <div id="model-comparison-chart" class="chart-box"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Risk Visualization Panel -->
+        <section class="section">
+            <h2>3 &mdash; Risk Visualization Panel</h2>
+            <div class="chart-card card">
+                <div class="content">
+                    <div class="back"><div class="back-content"><strong>Hover Me</strong></div></div>
+                    <div class="front">
+                        <div class="front-content">
+                            <div class="chart-loader" id="loader-risk"><div class="honeycomb"><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div></div>
+                            <div id="risk-panel" class="risk-grid"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: nRMSE Comparison -->
+        <section class="section">
+            <h2>4 &mdash; Model Accuracy Comparison (nRMSE)</h2>
+            <div class="chart-card card">
+                <div class="content">
+                    <div class="back"><div class="back-content"><strong>Hover Me</strong></div></div>
+                    <div class="front">
+                        <div class="front-content">
+                            <div class="chart-loader" id="loader-nrmse"><div class="honeycomb"><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div></div>
+                            <div id="nrmse-chart" class="chart-box"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 5: Environmental Impact -->
+        <section class="section">
+            <h2>5 &mdash; Environmental Impact on Fmax</h2>
+            <div class="chart-card card">
+                <div class="content">
+                    <div class="back"><div class="back-content"><strong>Hover Me</strong></div></div>
+                    <div class="front">
+                        <div class="front-content">
+                            <div class="chart-loader" id="loader-env-impact"><div class="honeycomb"><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div></div>
+                            <div id="env-impact-chart" class="chart-box"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
